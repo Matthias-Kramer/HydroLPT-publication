@@ -1,0 +1,46 @@
+# Python caches and environments
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Build/package outputs
+build/
+dist/
+installer-dist/
+installer/built/
+*.egg-info/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Local GUI/export artifacts
+output/
+GUI.pdf
+GUI.svg
+gui_vector_redraw.svg
+gui_snapshot.pdf
+gui_snapshot.png
+gui_snapshot_600dpi.pdf
+
+# Heavy hydraulic model and generated data files
+runs/
+figures/
+*.h5
+*.hdf
+*.dss
+*.xdmf
+*.tif
+*.tiff
+*.vrt
+*.npz
+*.npy
+*.sqlite

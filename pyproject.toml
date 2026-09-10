@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hydrolpt"
+version = "0.9.0"
+description = "HydroLPT desktop GUI and particle tracking tools"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Matthias Kramer" },
+]
+dependencies = [
+    "h5py",
+    "matplotlib",
+    "numba",
+    "numpy",
+    "scipy",
+]
+
+[project.optional-dependencies]
+build = [
+    "pyinstaller>=6.0",
+]
+test = [
+    "pytest",
+]
+
+[project.scripts]
+hydrolpt-gui = "gui.gui:main"
+
+[project.urls]
+Repository = "https://github.com/Matthias-Kramer/HydroLPT-publication"
+
+[tool.setuptools.packages.find]
+include = ["core*", "gui*"]

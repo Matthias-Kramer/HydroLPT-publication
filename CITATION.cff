@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+title: "HydroLPT"
+message: "If you use HydroLPT, please cite the associated software release and paper."
+type: software
+authors:
+  - family-names: "Kramer"
+    given-names: "Matthias"
+repository-code: "https://github.com/Matthias-Kramer/HydroLPT-publication"
+license: MIT
+version: "0.9.0"
+date-released: "2026-09-10"
