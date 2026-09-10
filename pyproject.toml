@@ -24,10 +24,6 @@ dependencies = [
 build = [
     "pyinstaller>=6.0",
 ]
-test = [
-    "pytest",
-]
-
 [project.scripts]
 hydrolpt-gui = "gui.gui:main"
 

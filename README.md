@@ -2,7 +2,7 @@
 
 HydroLPT is a Lagrangian particle-tracking tool for hydraulic model outputs, with a desktop GUI for setting up and running particle transport simulations.
 
-This publication repository contains the HydroLPT source code, the GUI entry point, minimal GUI assets, documentation, citation metadata, and a small smoke test. Large hydraulic model files, simulation outputs, benchmarks, and full paper figure datasets are excluded from GitHub and should be archived separately in a research data repository.
+This publication repository contains the HydroLPT source code, the GUI entry point, minimal GUI assets, documentation, citation metadata, and two GUI-loadable test cases. Large hydraulic model files beyond the bundled Merced GUI test file, simulation outputs, benchmarks, and full paper figure datasets are excluded from GitHub and should be archived separately in a research data repository.
 
 ## Features
 
@@ -43,35 +43,23 @@ Or, after installation:
 hydrolpt-gui
 ```
 
-## Tests
+## GUI Test Cases
 
-Run the lightweight test suite with:
-
-```powershell
-pytest
-```
-
-The tests are split by case:
+The GUI test cases are split by case:
 
 ```text
-tests/flume/    Synthetic flume smoke test
-tests/merced/   Merced River HEC-RAS smoke test and bundled HEC-RAS plan HDF
+tests/flume/flume_case.py      Synthetic flume GUI case
+tests/merced/merced_case.py    Merced River HEC-RAS GUI case
 ```
 
-The flume test runs a tiny synthetic case. The Merced River test uses the bundled HEC-RAS plan HDF by default:
+Open these files from the HydroLPT GUI with the case-file loader, or run them directly:
 
 ```powershell
-pytest tests/merced
+python tests/flume/flume_case.py
+python tests/merced/merced_case.py
 ```
 
-To run the Merced test against a different local HEC-RAS plan HDF, set:
-
-```powershell
-$env:HYDROLPT_MERCED_PLAN_HDF = "C:\path\to\HydroFlowOptimization.p01.hdf"
-pytest tests/merced
-```
-
-By default, the Merced test uses a wet-cell release point from the bundled HEC-RAS file: `2077955.433913742, 636415.8222505485`. Override it with `HYDROLPT_MERCED_RELEASE_X` and `HYDROLPT_MERCED_RELEASE_Y` if using a different Merced dataset.
+The Merced GUI case uses the bundled HEC-RAS plan HDF at `tests/merced/data/HydroFlowOptimization.p01.hdf` and a wet-cell release point from that file: `2077955.433913742, 636415.8222505485`.
 
 ## Repository Layout
 
@@ -80,7 +68,7 @@ core/        HydroLPT model, adapter, solver, boundary, and diagnostic code
 gui/         Desktop GUI code
 assets/      Minimal GUI icon assets
 docs/        Publication and data availability notes
-tests/       Minimal smoke tests
+tests/       GUI-loadable flume and Merced cases
 ```
 
 ## Data And Reproducibility
