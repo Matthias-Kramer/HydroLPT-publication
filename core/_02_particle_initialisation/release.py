@@ -5,6 +5,7 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.collections import PolyCollection
 from matplotlib.lines import Line2D
 from matplotlib.ticker import FuncFormatter
 
@@ -30,7 +31,7 @@ def _runtime_asset_path(relative_path: Path) -> Path:
     if getattr(sys, "frozen", False):
         runtime_root = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
     else:
-        runtime_root = Path(__file__).resolve().parents[1]
+        runtime_root = Path(__file__).resolve().parents[2]
     return runtime_root / relative_path
 
 
@@ -221,6 +222,9 @@ def build_release_schedule_per_center(
     n_per_center = int(n_per_center)
     t_release = float(t_release)
     release_dt = float(release_dt)
+    release_mode = str(release_mode).strip().lower()
+    if release_mode == "instantaneous":
+        release_mode = "bulk"
 
     if n_centers <= 0 or n_per_center <= 0:
         return np.empty(0, dtype=float)
@@ -237,7 +241,7 @@ def build_release_schedule_per_center(
 
 def get_release_centers(mesh, scalar_c, scalar_name: str, XY, tri0, h_c, hmin: float, window_anchor: dict | None = None):
     """Pick release centers interactively from a map and keep only wet in-domain points."""
-    XY = np.asarray(XY, dtype=float)
+    XY = np.asarray(getattr(mesh, "xy", XY), dtype=float)
     x_nodes = XY[:, 0]
     y_nodes = XY[:, 1]
     use_wide_flume_layout, _tall_planform, _figsize, _Lx, _Ly = _binary_map_figure_size(x_nodes, y_nodes)
@@ -367,7 +371,25 @@ def get_release_centers(mesh, scalar_c, scalar_name: str, XY, tri0, h_c, hmin: f
 
     plot_c = np.asarray(scalar_c, dtype=float).copy()
     plot_c[(~np.isfinite(plot_c)) | (np.asarray(h_c, dtype=float) <= hmin)] = np.nan
-    tpc = ax.tripcolor(x_plot, y_plot, tri0, facecolors=plot_c, shading="flat")
+    if getattr(mesh, "is_native_hecras", False):
+        polygons = []
+        polygon_values = []
+        for cell_id, poly_ids in enumerate(getattr(mesh, "_polygons", [])):
+            poly_ids = np.asarray(poly_ids, dtype=int)
+            if poly_ids.size < 3:
+                continue
+            polygons.append(XY[poly_ids])
+            polygon_values.append(plot_c[cell_id] if cell_id < plot_c.size else np.nan)
+        if not polygons:
+            raise ValueError("Cannot draw release picker: HEC-RAS mesh has no valid cell polygons.")
+        tpc = PolyCollection(polygons, array=np.asarray(polygon_values, dtype=float), edgecolors="none")
+        ax.add_collection(tpc)
+        x_min, x_max = _axis_bounds(x_plot)
+        y_min, y_max = _axis_bounds(y_plot)
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+    else:
+        tpc = ax.tripcolor(x_plot, y_plot, tri0, facecolors=plot_c, shading="flat")
     cb = fig.colorbar(tpc, cax=cbar_ax, orientation="horizontal")
     cb.set_label(cbar_label_text)
     cb.ax.tick_params(axis="x", bottom=True, labelbottom=True)

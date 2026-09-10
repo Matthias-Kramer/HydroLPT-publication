@@ -125,7 +125,7 @@ SECTION_COMMENTS: dict[str, dict[str, str]] = {
         "tanphi_ratio": "friction angle ratio for bed entrainment",
         "bedEntrainmentSigmaStar": "dimensionless spread sigma* for probabilistic bed entrainment",
         "outsidePolicy": 'currently "stop"',
-        "dryPolicy": '"reflect", "stop", or "stick_active"',
+        "dryPolicy": '"tangential", "stop", or "stick_active"',
         "hmin": "minimum wet depth threshold [m]",
         "uphillPolicy": '"off" or "stop"',
         "dzUpMax": "max allowed uphill bed jump [m]",

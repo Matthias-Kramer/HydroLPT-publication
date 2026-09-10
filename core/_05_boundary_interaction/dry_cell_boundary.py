@@ -6,7 +6,7 @@ from typing import Callable
 import numpy as np
 
 
-DRY_POLICIES = ("stop", "reflect", "stick_active")
+DRY_POLICIES = ("stop", "tangential", "stick_active")
 
 
 def apply_dry_stop(
@@ -42,7 +42,7 @@ def apply_dry_stop(
 def validate_dry_policy(dry_policy: str) -> None:
     """Validate the dry-cell interaction policy."""
     if dry_policy not in DRY_POLICIES:
-        raise ValueError('dryPolicy must be "stop", "reflect", or "stick_active".')
+        raise ValueError('dryPolicy must be "stop", "tangential", or "stick_active".')
 
 
 def _validate_subset_inputs(
@@ -450,7 +450,7 @@ def wet_dry_stop_contact_points(
     return contact_positions, contact_triangle_ids, boundary_alpha
 
 
-def reflect_slide_wetdry_subset_fullcache(
+def tangential_slide_wetdry_subset_fullcache(
     Pprop_sub,
     Pdet_sub,
     mesh,

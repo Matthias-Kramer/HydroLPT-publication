@@ -57,7 +57,7 @@ def _runtime_asset_path(relative_path: Path) -> Path:
     if getattr(sys, "frozen", False):
         runtime_root = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
     else:
-        runtime_root = Path(__file__).resolve().parents[1]
+        runtime_root = Path(__file__).resolve().parents[2]
     return runtime_root / relative_path
 
 
@@ -335,7 +335,7 @@ def _effective_boundary_policies(ws: float, bed_policy: str, surface_policy: str
     if ws < 0.0:
         return "always_reflect", surface_policy
     if ws > 0.0:
-        return bed_policy, surface_policy
+        return bed_policy, "always_reflect"
     return "always_reflect", "always_reflect"
 
 
@@ -865,6 +865,8 @@ def run_hydraulic_case(
                     "wse": wse_for_classification,
                     "h": wse_for_classification - zb_c,
                 },
+                valid_cell_mask=np.isfinite(wse_for_classification - zb_c)
+                & ((wse_for_classification - zb_c) > settings["hmin"]),
             )
             sampled_final = final_sampler.sample_fields(tid_end, final_points, ("zb", "wse", "h"))
             classification_geometry = {
@@ -1030,6 +1032,7 @@ def run_hydraulic_case(
                 marker_size=shared_marker_size,
                 mesh=mesh,
                 hydraulicFieldMode=hydraulic_field_mode,
+                valid_cell_mask=np.isfinite(wse_plot - zb_c) & ((wse_plot - zb_c) > settings["hmin"]),
             )
 
         if enable_rouse:

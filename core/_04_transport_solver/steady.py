@@ -24,7 +24,7 @@ from core._05_boundary_interaction import (
     apply_outside_stop,
     resolve_bed_contact,
     resolve_bed_entrainment,
-    reflect_slide_wetdry_subset_fullcache,
+    tangential_slide_wetdry_subset_fullcache,
     resolve_surface_contact,
     resolve_surface_detachment,
     ustarcrit_from_eq20,
@@ -83,6 +83,7 @@ if njit is not None:
         neighbors,
         field_matrix,
         field_indices,
+        valid_cell_mask,
         power,
         eps,
     ):
@@ -111,6 +112,8 @@ if njit is not None:
                     cell_id = neighbors[tid, candidate_pos - 1]
                 if cell_id < 0 or cell_id >= cell_centers.shape[0]:
                     continue
+                if not valid_cell_mask[cell_id]:
+                    continue
 
                 dx = cell_centers[cell_id, 0] - px
                 dy = cell_centers[cell_id, 1] - py
@@ -134,7 +137,13 @@ else:
 class _LocalCellIDWFieldSampler:
     """Sample cellwise fields directly at points using local cell-center IDW."""
 
-    def __init__(self, mesh, field_map: dict[str, np.ndarray | None], power: float = 2.0) -> None:
+    def __init__(
+        self,
+        mesh,
+        field_map: dict[str, np.ndarray | None],
+        power: float = 2.0,
+        valid_cell_mask: np.ndarray | None = None,
+    ) -> None:
         self.mesh = mesh
         if hasattr(mesh, "cell_centers"):
             self.cell_centers = np.asarray(mesh.cell_centers, dtype=float)
@@ -145,6 +154,12 @@ class _LocalCellIDWFieldSampler:
         self.neighbors = np.asarray(mesh.neighbors, dtype=int)
         self.power = float(power)
         self.eps = 1.0e-12
+        if valid_cell_mask is None:
+            self.valid_cell_mask = np.ones(self.cell_centers.shape[0], dtype=bool)
+        else:
+            self.valid_cell_mask = np.asarray(valid_cell_mask, dtype=bool).ravel()
+            if self.valid_cell_mask.size != self.cell_centers.shape[0]:
+                raise ValueError("valid_cell_mask must have size Nc")
         self._fields: dict[str, np.ndarray] = {}
         self._field_index: dict[str, int] = {}
         for name, values in field_map.items():
@@ -186,6 +201,7 @@ class _LocalCellIDWFieldSampler:
                     self.neighbors,
                     self._field_matrix,
                     field_indices,
+                    self.valid_cell_mask,
                     self.power,
                     self.eps,
                 )
@@ -196,6 +212,7 @@ class _LocalCellIDWFieldSampler:
         candidate_cells = np.column_stack([triangle_ids[valid], self.neighbors[triangle_ids[valid]]])
         candidate_ok = candidate_cells >= 0
         candidate_cells_safe = np.where(candidate_ok, candidate_cells, 0)
+        candidate_ok &= self.valid_cell_mask[candidate_cells_safe]
         centers = self.cell_centers[candidate_cells_safe]
         delta = centers - points[valid, None, :]
         dist = np.linalg.norm(delta, axis=2)
@@ -673,6 +690,8 @@ def advect_particles_euler_cell_fast_fullcache_3d_ustar(
     )
     if float(ws) < 0.0:
         bedPolicy = "always_reflect"
+    elif float(ws) > 0.0:
+        surfacePolicy = "always_reflect"
     elif float(ws) == 0.0:
         bedPolicy = "always_reflect"
         surfacePolicy = "always_reflect"
@@ -812,6 +831,7 @@ def advect_particles_euler_cell_fast_fullcache_3d_ustar(
                     "kpar": Kpar_c,
                     "kperp": Kperp_c,
                 },
+                valid_cell_mask=wet_cell,
             )
             _profile_add(profile, "field_sampler_build_s", perf_counter() - t_sampler)
 
@@ -1444,7 +1464,7 @@ def advect_particles_euler_cell_fast_fullcache_3d_ustar(
     chunk_crossing_candidates = 0
     chunk_crossings_resolved = 0
     chunk_outside_after_cross = 0
-    chunk_wetdry_reflections = 0
+    chunk_wetdry_tangential = 0
     chunk_alive_move_peak = 0
     chunk_alive_move_sum = 0
     chunk_active_samples = 0
@@ -1455,7 +1475,7 @@ def advect_particles_euler_cell_fast_fullcache_3d_ustar(
         nonlocal chunk_crossing_candidates
         nonlocal chunk_crossings_resolved
         nonlocal chunk_outside_after_cross
-        nonlocal chunk_wetdry_reflections
+        nonlocal chunk_wetdry_tangential
         nonlocal chunk_alive_move_peak
         nonlocal chunk_alive_move_sum
         nonlocal chunk_active_samples
@@ -1480,7 +1500,7 @@ def advect_particles_euler_cell_fast_fullcache_3d_ustar(
             f"alive_move avg {avg_alive_move:.0f}, peak {chunk_alive_move_peak}, "
             f"crossings {chunk_crossings_resolved}/{chunk_crossing_candidates}, "
             f"outside_after_cross {chunk_outside_after_cross}, "
-            f"wetdry_reflections {chunk_wetdry_reflections}",
+            f"wetdry_tangential {chunk_wetdry_tangential}",
             flush=True,
         )
 
@@ -1489,7 +1509,7 @@ def advect_particles_euler_cell_fast_fullcache_3d_ustar(
         chunk_crossing_candidates = 0
         chunk_crossings_resolved = 0
         chunk_outside_after_cross = 0
-        chunk_wetdry_reflections = 0
+        chunk_wetdry_tangential = 0
         chunk_alive_move_peak = 0
         chunk_alive_move_sum = 0
         chunk_active_samples = 0
@@ -2091,8 +2111,8 @@ def advect_particles_euler_cell_fast_fullcache_3d_ustar(
 
                     if np.any(dry2):
                         idx_dry = idx_in[dry2]
-                        if dryPolicy == "reflect":
-                            chunk_wetdry_reflections += int(idx_dry.size)
+                        if dryPolicy == "tangential":
+                            chunk_wetdry_tangential += int(idx_dry.size)
 
                         if dryPolicy in ("stop", "stick_active"):
                             Pprop_stop = np.empty((idx_dry.size, 2), dtype=float)
@@ -2171,7 +2191,7 @@ def advect_particles_euler_cell_fast_fullcache_3d_ustar(
                             Pdet_sub[:, 1] = y_prev[idx_dry]
 
                             t_wetdry = perf_counter()
-                            Pcorr_sub = reflect_slide_wetdry_subset_fullcache(
+                            Pcorr_sub = tangential_slide_wetdry_subset_fullcache(
                                 Pprop_sub=Pprop_sub,
                                 Pdet_sub=Pdet_sub,
                                 mesh=mesh,
@@ -2183,7 +2203,7 @@ def advect_particles_euler_cell_fast_fullcache_3d_ustar(
                                 dt=dt,
                                 tid_prev_sub=tidAtPn[idx_dry],
                             )
-                            _profile_add(profile, "wetdry_reflection_s", perf_counter() - t_wetdry)
+                            _profile_add(profile, "wetdry_tangential_s", perf_counter() - t_wetdry)
 
                             x_new[idx_dry] = Pcorr_sub[:, 0]
                             y_new[idx_dry] = Pcorr_sub[:, 1]

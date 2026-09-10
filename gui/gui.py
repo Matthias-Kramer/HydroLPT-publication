@@ -142,7 +142,7 @@ OPTION_VALUES = {
         "probabilistic_entrainment",
     ],
     "outsidePolicy": ["stop"],
-    "dryPolicy": ["reflect", "stop", "stick_active"],
+    "dryPolicy": ["tangential", "stop", "stick_active"],
     "uphillPolicy": ["off", "stop"],
     "transient_shape": ["step", "linear"],
     "biofouling": ["off", "on"],
@@ -150,6 +150,12 @@ OPTION_VALUES = {
 }
 
 OPTION_DISPLAY_LABELS = {
+    "surfacePolicy": {
+        "always_reflect": "always reflect",
+        "always_stick": "always stick",
+        "deterministic_detachment": "deterministic detachment",
+        "probabilistic_detachment": "probabilistic detachment",
+    },
     "bedPolicy": {
         "always_reflect": "always reflect",
         "always_deposit": "always deposit",
@@ -157,7 +163,7 @@ OPTION_DISPLAY_LABELS = {
         "probabilistic_entrainment": "probabilistic entrainment",
     },
     "dryPolicy": {
-        "reflect": "reflect",
+        "tangential": "tangential",
         "stop": "stop",
         "stick_active": "stick active",
     }
@@ -488,6 +494,7 @@ class HydroLPTGUI(tk.Tk):
     """Main desktop application for creating and running HydroLPT cases."""
 
     def __init__(self) -> None:
+        _configure_windows_app_id()
         super().__init__()
         self.title("HydroLPT v0.9 Studio")
         self.geometry("820x860")
@@ -548,6 +555,7 @@ class HydroLPTGUI(tk.Tk):
         self._configure_window_icon()
         self._configure_styles()
         self._build_layout()
+        self.after_idle(self._configure_window_icon)
         self._set_case_type("synthetic")
         self._apply_workflow_mode()
         self._initialize_window_layout()
@@ -577,6 +585,7 @@ class HydroLPTGUI(tk.Tk):
 
     def _apply_normalized_case_sections(self, normalized_case: dict[str, Any]) -> None:
         """Refresh editor fields from a normalized case payload."""
+        self._force_export_case_file_enabled()
         self._set_current_schema(normalized_case)
         blueprint = build_blueprint_from_case(
             {
@@ -608,6 +617,13 @@ class HydroLPTGUI(tk.Tk):
 
         self._refresh_loaded_mesh_counts()
         self._update_conditional_fields()
+        self._force_export_case_file_enabled()
+
+    def _force_export_case_file_enabled(self) -> None:
+        """Keep runnable HydroLPT.py export permanently enabled."""
+        self.export_files_var.set(True)
+        if self.export_files_check is not None:
+            self.export_files_check.state(["selected", "disabled"])
 
     def _focus_notebook(self, _event: tk.Event | None = None) -> None:
         """Keep focus off the first editable field when tabs are shown."""
@@ -860,6 +876,7 @@ class HydroLPTGUI(tk.Tk):
 
     def _set_run_ui_state(self, running: bool) -> None:
         """Grey out editor tabs during a run and leave only Stop Run enabled."""
+        self._force_export_case_file_enabled()
         self.controls_locked_for_run = running
 
         combo_state = "disabled" if running else "readonly"
@@ -877,7 +894,7 @@ class HydroLPTGUI(tk.Tk):
         self._set_widget_state(self.run_case_button, button_state)
         self._set_widget_state(self.save_case_button, button_state)
         if self.export_files_check is not None:
-            self._set_widget_state(self.export_files_check, "disabled")
+            self.export_files_check.state(["selected", "disabled"])
         if self.export_data_check is not None:
             self._set_widget_state(self.export_data_check, button_state)
         if self.save_click_points_check is not None:
@@ -888,6 +905,7 @@ class HydroLPTGUI(tk.Tk):
         if not running:
             self._sync_xdmf_controls()
             self._update_conditional_fields()
+            self._force_export_case_file_enabled()
 
     def _close_lingering_plot_process(self) -> None:
         """Close any still-open plot windows from a previous completed run."""
@@ -1353,6 +1371,7 @@ class HydroLPTGUI(tk.Tk):
             self._set_output_dir(default_output_dir().resolve(), locked=False)
 
     def _populate_from_blueprint(self, blueprint: dict[str, Any]) -> None:
+        self._force_export_case_file_enabled()
         self.editor_vars.clear()
         self.section_widgets.clear()
         self.section_entries.clear()
@@ -1440,8 +1459,8 @@ class HydroLPTGUI(tk.Tk):
                 variable=self.export_files_var,
             )
             export_files_check.grid(row=row, column=1, sticky="w", pady=4)
-            export_files_check.configure(state="disabled")
             self.export_files_check = export_files_check
+            self._force_export_case_file_enabled()
             widgets_for_section["__export_files__"] = [export_files_label, export_files_check]
             entries_for_section["__export_files__"] = export_files_check
             row += 1
@@ -2106,13 +2125,14 @@ class HydroLPTGUI(tk.Tk):
         bed_policy = str(_from_display_option_value("bedPolicy", _parse_value(raw_bed_policy)) or "always_reflect").strip().lower()
 
         ws_sign = self._current_particle_ws_sign()
-        lock_surface = ws_sign is not None and ws_sign == 0
+        lock_surface = ws_sign is not None and ws_sign >= 0
         lock_bed = ws_sign is not None and ws_sign <= 0
 
         if lock_surface:
             surface_policy = "always_reflect"
-            if surface_var is not None and surface_var.get() != "always_reflect":
-                surface_var.set("always_reflect")
+            display_surface_policy = _to_display_option_value("surfacePolicy", "always_reflect")
+            if surface_var is not None and surface_var.get() != display_surface_policy:
+                surface_var.set(display_surface_policy)
         if lock_bed:
             bed_policy = "always_reflect"
             if bed_var is not None and bed_var.get() != _to_display_option_value("bedPolicy", "always_reflect"):
@@ -2465,6 +2485,11 @@ class HydroLPTGUI(tk.Tk):
             bed_var = self.editor_vars.get("BOUNDARY_SETTINGS", {}).get("bedPolicy")
             if bed_var is not None:
                 bed_var.set(_to_display_option_value("bedPolicy", "always_reflect"))
+        elif particle.ws > 0.0:
+            boundary_settings["surfacePolicy"] = "always_reflect"
+            surface_var = self.editor_vars.get("BOUNDARY_SETTINGS", {}).get("surfacePolicy")
+            if surface_var is not None:
+                surface_var.set(_to_display_option_value("surfacePolicy", "always_reflect"))
         elif particle.ws == 0.0:
             boundary_settings["bedPolicy"] = "always_reflect"
             boundary_settings["surfacePolicy"] = "always_reflect"
@@ -2473,7 +2498,7 @@ class HydroLPTGUI(tk.Tk):
             if bed_var is not None:
                 bed_var.set(_to_display_option_value("bedPolicy", "always_reflect"))
             if surface_var is not None:
-                surface_var.set("always_reflect")
+                surface_var.set(_to_display_option_value("surfacePolicy", "always_reflect"))
         surface_policy = str(boundary_settings.get("surfacePolicy", "always_reflect")).strip().lower()
         if surface_policy == "probabilistic_detachment":
             sigma_star = float(boundary_settings.get("surfaceDetachmentSigmaStar", 0.2))
@@ -2590,6 +2615,7 @@ class HydroLPTGUI(tk.Tk):
         spec = case_schema_to_payload(schema)
         spec["run_name"] = self._current_run_name()
         spec["output_dir"] = str(output_dir)
+        spec["export_case_files"] = True
         spec["preserve_clicked_release_points"] = bool(self.save_click_points_var.get())
         spec["window_anchor"] = {
             "x": self.winfo_rootx(),

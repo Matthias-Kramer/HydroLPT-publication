@@ -38,7 +38,7 @@ PARTICLE_SETTINGS = {
     # Particle properties
     "shape": "sphere",  # particle shape: "sphere", "ellipsoid", "cylinder", "disk", or "prism"
     "L": 0.005,  # sphere diameter D [m]
-    "rho_p": 1010.0,  # particle density [kg/m3]
+    "rho_p": 990.0,  # particle density [kg/m3]
 
     # Particle release
     "release_mode": "instantaneous",  # "bulk" or "continuous" release mode
@@ -82,7 +82,7 @@ BOUNDARY_SETTINGS = {
     "surfaceVerticalDragCoeff": 2.0,  # vertical drag coefficient used for surface detachment
     "bedPolicy": "always_reflect",  # "always_reflect", "always_deposit", "reflect_if_ustar_gt_crit", or "probabilistic_entrainment"
     "tanphi_ratio": 0.55,  # friction angle ratio for bed entrainment
-    "dryPolicy": "reflect",  # "reflect", "stop", or "stick_active"
+    "dryPolicy": "tangential",  # "tangential", "stop", or "stick_active"
     "hmin": 0.01,  # minimum wet depth threshold [m]
     "outsidePolicy": "stop",  # currently "stop"
     "uphillPolicy": "off"  # "off" or "stop"
@@ -112,36 +112,6 @@ SETTINGS = {
     **BOUNDARY_SETTINGS,
     **OUTPUT_SETTINGS,
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def main() -> None:
