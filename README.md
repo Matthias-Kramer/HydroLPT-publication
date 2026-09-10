@@ -1,4 +1,4 @@
-# HydroLPT v0.9
+# HydroLPT v0.9.0
 
 HydroLPT is a Lagrangian particle-tracking tool for hydraulic model outputs, with a desktop GUI for setting up, running, saving, and visualizing particle transport simulations.
 
