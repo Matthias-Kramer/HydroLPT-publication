@@ -44,8 +44,8 @@ PARTICLE_SETTINGS = {
     "release_mode": "instantaneous",  # "bulk" or "continuous" release mode
     "location_mode": "coordinates",  # location mode: "coordinates" or "click"
     "manual_centers": [[1.0, 0.5]],  # list of [x, y] release centers
-    "n_per_center": 1,  # particles released per center
-    "nTrack": 1,  # number of saved trajectories
+    "n_per_center": 1000,  # particles released per center
+    "nTrack": 10,  # number of saved trajectories
     "releaseSigma": 0.0,  # horizontal cloud spread [m]
     "zFrac": 0.5  # initial z as fraction of local depth (0=bed, 1=surface)
 }
@@ -66,9 +66,9 @@ TRANSPORT_SETTINGS = {
     "transportVelocityMode": "depth_averaged",  # "depth_averaged" or "loglaw_vertical"
     "transportModel": "random_walk",  # "random_walk" or "langevin"
     "rng_seed": 1,  # random seed: None for a fresh seed each run, or an integer for reproducible release/random-walk paths
-    "useRWx": False,  # streamwise random walk on/off
+    "useRWx": True,  # streamwise random walk on/off
     "useRWy": False,  # transverse random walk on/off
-    "useRWz": False,  # vertical random walk on/off
+    "useRWz": True,  # vertical random walk on/off
     "betaKh": 0.6,  # horizontal diffusivity factor
     "KhMax": 5.0,  # cap on horizontal diffusivity [m2/s]
     "rAniso": 3.0,  # horizontal anisotropy ratio: K_parallel = rAniso K_h, K_perp = K_h/rAniso
@@ -82,7 +82,7 @@ BOUNDARY_SETTINGS = {
     "surfaceVerticalDragCoeff": 2.0,  # vertical drag coefficient used for surface detachment
     "bedPolicy": "always_reflect",  # "always_reflect", "always_deposit", "reflect_if_ustar_gt_crit", or "probabilistic_entrainment"
     "tanphi_ratio": 0.55,  # friction angle ratio for bed entrainment
-    "dryPolicy": "stop",  # "reflect", "stop", or "stick_active"
+    "dryPolicy": "reflect",  # "reflect", "stop", or "stick_active"
     "hmin": 0.01,  # minimum wet depth threshold [m]
     "outsidePolicy": "stop",  # currently "stop"
     "uphillPolicy": "off"  # "off" or "stop"
@@ -112,6 +112,18 @@ SETTINGS = {
     **BOUNDARY_SETTINGS,
     **OUTPUT_SETTINGS,
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
