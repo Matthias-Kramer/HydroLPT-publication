@@ -434,7 +434,15 @@ def _mask_boundary_edges(triangles, mask) -> np.ndarray:
     return np.asarray(edges, dtype=int).reshape((-1, 2)) if edges else np.empty((0, 2), dtype=int)
 
 
-def _local_cell_idw_sample(points, source_triangles, cell_centers, neighbors, values, power: float = 2.0) -> np.ndarray:
+def _local_cell_idw_sample(
+    points,
+    source_triangles,
+    cell_centers,
+    neighbors,
+    values,
+    power: float = 2.0,
+    valid_cell_mask=None,
+) -> np.ndarray:
     """Sample cell-centered values at points from containing cells plus edge neighbors."""
     points_arr = np.asarray(points, dtype=float)
     source = np.asarray(source_triangles, dtype=int).ravel()
@@ -443,12 +451,19 @@ def _local_cell_idw_sample(points, source_triangles, cell_centers, neighbors, va
     cell_values = np.asarray(values, dtype=float).ravel()
     out = np.full(source.shape, np.nan, dtype=float)
     valid = source >= 0
+    if valid_cell_mask is not None:
+        cell_ok = np.asarray(valid_cell_mask, dtype=bool).ravel()
+        if cell_ok.size != cell_values.size:
+            raise ValueError("valid_cell_mask must have the same size as values")
+        valid &= cell_ok[np.where(valid, source, 0)]
     if not np.any(valid):
         return out
 
     candidate_cells = np.column_stack([source[valid], nbr[source[valid]]])
     candidate_ok = candidate_cells >= 0
     candidate_cells_safe = np.where(candidate_ok, candidate_cells, 0)
+    if valid_cell_mask is not None:
+        candidate_ok &= cell_ok[candidate_cells_safe]
     candidate_centers = centers[candidate_cells_safe]
     dist = np.linalg.norm(candidate_centers - points_arr[valid, None, :], axis=2)
     candidate_values = cell_values[candidate_cells_safe]
@@ -498,13 +513,25 @@ def _barycentric_from_xy(triangle_xy, points) -> np.ndarray:
     return out
 
 
-def _sample_plot_field_at_points(mesh, hydraulic_field_mode, points, triangle_ids, values) -> np.ndarray:
+def _sample_plot_field_at_points(
+    mesh,
+    hydraulic_field_mode,
+    points,
+    triangle_ids,
+    values,
+    valid_cell_mask=None,
+) -> np.ndarray:
     """Sample a cell-centered plot field using the selected hydraulic field mode."""
     points_arr = np.asarray(points, dtype=float)
     tid = np.asarray(triangle_ids, dtype=int).ravel()
     cell_values = np.asarray(values, dtype=float).ravel()
     out = np.full(tid.shape, np.nan, dtype=float)
     valid = (tid >= 0) & np.all(np.isfinite(points_arr), axis=1) & (tid < cell_values.size)
+    if valid_cell_mask is not None:
+        cell_ok = np.asarray(valid_cell_mask, dtype=bool).ravel()
+        if cell_ok.size != cell_values.size:
+            raise ValueError("valid_cell_mask must have the same size as values")
+        valid &= cell_ok[np.where(valid, tid, 0)]
     if not np.any(valid):
         return out
 
@@ -527,6 +554,7 @@ def _sample_plot_field_at_points(mesh, hydraulic_field_mode, points, triangle_id
             centers,
             np.asarray(mesh.neighbors, dtype=int),
             cell_values,
+            valid_cell_mask=valid_cell_mask,
         )
         return out
 
@@ -1341,6 +1369,7 @@ def make_figure_trajectories_tracked(
     marker_size=5.0,
     mesh=None,
     hydraulicFieldMode="cellwise",
+    valid_cell_mask=None,
 ):
     """
     Plot tracked particle vertical histories.
@@ -1492,6 +1521,7 @@ def make_figure_trajectories_tracked(
                     points_in,
                     tid_in,
                     zb_c,
+                    valid_cell_mask=valid_cell_mask,
                 )
 
         if wseTr_track is not None:
@@ -1512,6 +1542,7 @@ def make_figure_trajectories_tracked(
                     points_in,
                     tid_in,
                     wse_c,
+                    valid_cell_mask=valid_cell_mask,
                 )
 
         # -----------------------------------------------------
@@ -3036,4 +3067,3 @@ def make_figure_advection_diffusion(
     fig.tight_layout()
 
     return fig
-

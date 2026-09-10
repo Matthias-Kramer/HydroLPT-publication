@@ -59,7 +59,7 @@ PARTICLE_EVO_SETTINGS = {
 TRANSPORT_SETTINGS = {
     # Time settings
     "dt": 0.2,  # particle timestep [s]
-    "tTrack": 5.0,  # particle tracking duration [s]
+    "tTrack": 30.0,  # particle tracking duration [s]
 
     # Advection and dispersion
     "hydraulicFieldMode": "cellwise",  # "cellwise" or "local_idw"

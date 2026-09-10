@@ -18,6 +18,11 @@ This publication repository contains the HydroLPT source code, the GUI entry poi
 
 ## Installation
 
+For Windows users, a packaged installer is available in
+[`installer/HydroLPT-Setup.exe`](installer/HydroLPT-Setup.exe). The installer
+sets up the HydroLPT desktop GUI in the user-local application folder, does not
+require administrator rights, and can create a desktop shortcut.
+
 HydroLPT requires Python 3.11 or newer.
 
 ```powershell
