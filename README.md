@@ -51,14 +51,27 @@ Run the lightweight test suite with:
 pytest
 ```
 
-The flume test runs a tiny synthetic case using only repository code. The Merced River test is skipped unless the external HEC-RAS plan HDF file is provided:
+The tests are split by case:
+
+```text
+tests/flume/    Synthetic flume smoke test
+tests/merced/   Merced River HEC-RAS smoke test and bundled HEC-RAS plan HDF
+```
+
+The flume test runs a tiny synthetic case. The Merced River test uses the bundled HEC-RAS plan HDF by default:
+
+```powershell
+pytest tests/merced
+```
+
+To run the Merced test against a different local HEC-RAS plan HDF, set:
 
 ```powershell
 $env:HYDROLPT_MERCED_PLAN_HDF = "C:\path\to\HydroFlowOptimization.p01.hdf"
-pytest tests/test_merced.py
+pytest tests/merced
 ```
 
-By default, the Merced test uses the release point from the publication case: `2083030.0, 637376.0`. Override it with `HYDROLPT_MERCED_RELEASE_X` and `HYDROLPT_MERCED_RELEASE_Y` if using a different Merced dataset.
+By default, the Merced test uses a wet-cell release point from the bundled HEC-RAS file: `2077955.433913742, 636415.8222505485`. Override it with `HYDROLPT_MERCED_RELEASE_X` and `HYDROLPT_MERCED_RELEASE_Y` if using a different Merced dataset.
 
 ## Repository Layout
 

@@ -36,6 +36,7 @@ runs/
 figures/
 *.h5
 *.hdf
+!tests/merced/data/HydroFlowOptimization.p01.hdf
 *.dss
 *.xdmf
 *.tif
