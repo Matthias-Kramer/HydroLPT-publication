@@ -1,16 +1,20 @@
 # HydroLPT
 
-HydroLPT is a Lagrangian particle-tracking tool for hydraulic model outputs, with a desktop GUI for setting up and running particle transport simulations.
+HydroLPT is a Lagrangian particle-tracking tool for hydraulic model outputs, with a desktop GUI for setting up, running, saving, and visualizing particle transport simulations.
 
 This publication repository contains the HydroLPT source code, the GUI entry point, minimal GUI assets, documentation, citation metadata, and two GUI-loadable test cases. Large hydraulic model files beyond the bundled Merced GUI test file, simulation outputs, benchmarks, and full paper figure datasets are excluded from GitHub and should be archived separately in a research data repository.
 
 ## Features
 
 - Particle release, property assignment, and transport simulation workflows.
-- Synthetic, BASEMENT, and HEC-RAS-oriented hydraulic input adapters.
-- Boundary interaction handling for bed, surface, dry-cell, and domain-exit behavior.
-- Output diagnostics and plotting utilities.
-- Desktop GUI entry point for local use.
+- Synthetic, BASEMENT, and HEC-RAS hydraulic input modes.
+- Coordinate-based and interactive click-based particle release setup.
+- Bulk and continuous release schedules.
+- Random-walk and Langevin transport options.
+- Depth-averaged, release-elevation, and log-law velocity sampling modes.
+- Boundary interaction handling for bed, free surface, dry-cell, uphill-bed, and domain-exit behavior.
+- Optional particle evolution through biofouling or degradation.
+- Output diagnostics, final-state mapping, selected particle trajectories, and runnable case-file export.
 
 ## Installation
 
@@ -43,6 +47,42 @@ Or, after installation:
 hydrolpt-gui
 ```
 
+## GUI Overview
+
+The HydroLPT GUI is the recommended way to configure local simulations without editing Python case files by hand. It provides a structured editor for hydraulic input, particle properties, transport settings, boundary interaction choices, particle evolution, and output/plot settings.
+
+At the top of the GUI, choose a simulation type and workflow:
+
+- **Synthetic Flume** builds an idealized steady or transient flume case directly inside HydroLPT.
+- **BASEMENT HPC** runs particle tracking on exported BASEMENT hydraulic results from a `results.xdmf` file.
+- **HEC-RAS 2D** runs particle tracking on a HEC-RAS plan HDF file.
+- **New Simulation** starts from default settings for the selected simulation type.
+- **Existing Simulation** loads an existing `HydroLPT.py` case file and populates the editor with its settings.
+
+The main editor is organized into tabs:
+
+- **Hydraulic Input** sets the hydraulic model source, fluid properties, synthetic flume geometry, and transient timing where applicable.
+- **Particle Settings** defines particle shape, size, density, release mode, number of particles, tracked trajectories, release spread, and vertical release position.
+- **Particle Evolution** enables or disables biofouling and degradation parameters.
+- **Transport Settings** controls timestep, tracking duration, hydraulic interpolation mode, velocity sampling, random walk, Langevin turbulence, diffusivity limits, and random seed.
+- **Boundary Settings** controls surface, bed, dry-cell, outside-domain, and uphill-bed behavior. Dry-cell motion uses the `tangential` policy name, with alternatives `stop` and `stick_active`.
+- **Plots** controls data export, trajectory output timestep, binary/final-state maps, trajectory plots, marker size, and mesh overlay.
+
+## GUI Functionality
+
+The GUI supports both direct execution and case-file generation:
+
+- **Run Case** validates the current settings, writes a runnable `HydroLPT.py` case file, and starts the simulation in a subprocess so progress appears in the GUI log.
+- **Save** writes the current configuration as a Python case file without starting a simulation.
+- **Export case file** is always enabled. Every GUI run writes a runnable case file for reproducibility.
+- **Export data** controls whether particle output tables and diagnostic files are written.
+- **Save click coordinates** preserves interactively selected release locations in exported cases.
+- **Stop Run** terminates the active subprocess when a simulation needs to be interrupted.
+
+For click-based release, the GUI opens a hydraulic-field map and records valid wet, in-domain release points. For HEC-RAS native meshes, the picker draws the model cell polygons directly so release locations line up with the hydraulic cells.
+
+The GUI also applies boundary-policy safeguards based on particle buoyancy. Rising particles use a locked bed reflection policy, settling particles use a locked surface reflection policy, and neutral particles reflect at both vertical boundaries.
+
 ## GUI Test Cases
 
 The GUI test cases are split by case:
@@ -59,7 +99,7 @@ python tests/flume/flume_case.py
 python tests/merced/merced_case.py
 ```
 
-The Merced GUI case uses the bundled HEC-RAS plan HDF at `tests/merced/data/HydroFlowOptimization.p01.hdf` and a wet-cell release point from that file: `2077955.433913742, 636415.8222505485`.
+The Merced GUI case uses the bundled HEC-RAS plan HDF at `tests/merced/data/HydroFlowOptimization.p01.hdf`.
 
 ## Repository Layout
 
@@ -71,15 +111,6 @@ docs/        Publication and data availability notes
 tests/       GUI-loadable flume and Merced cases
 ```
 
-## Data And Reproducibility
-
-The clean code repository does not include heavyweight hydraulic model data, generated `output/` folders, or large paper figure datasets. See [docs/DATA_AVAILABILITY.md](docs/DATA_AVAILABILITY.md) for the intended data split.
-
-For paper reproduction, archive the required model inputs and generated datasets separately, then link that archive from the GitHub release and manuscript.
-
-## Citation
-
-If you use HydroLPT, please cite the associated paper and software release. Citation metadata is provided in [CITATION.cff](CITATION.cff).
 
 ## License
 
